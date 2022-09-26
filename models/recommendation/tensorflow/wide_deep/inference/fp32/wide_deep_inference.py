@@ -141,8 +141,17 @@ def build_estimator(model_dir, model_type):
 
     # Create a tf.estimator.RunConfig to ensure the model is run on CPU, which
     # trains faster than GPU for this model.
+
+    omp_num_threads = int(os.getenv('OMP_NUM_THREADS'))
+    print('omp_num_threads: ', omp_num_threads)
+
+
+    config = tf.compat.v1.ConfigProto(device_count={'GPU': 0})
+    config.intra_op_parallelism_threads = omp_num_threads
+    config.inter_op_parallelism_threads = 1
     run_config = tf.estimator.RunConfig().replace(
-        session_config=tf.compat.v1.ConfigProto(device_count={'GPU': 0}))
+        #session_config=tf.compat.v1.ConfigProto(device_count={'GPU': 0}))
+        session_config=config)
 
     if model_type == 'wide':
         return tf.estimator.LinearClassifier(
@@ -239,6 +248,11 @@ def main(argv):
         print('Latency is: %s', E2Eduration / num_records)
     else:
         print('Throughput is: %s', num_records / evaluate_duration)
+
+
+    if os.getenv("AIO_PROFILER", "0") == "1":
+        print('aio_profiler')
+        tf.AIO.print_profile_data()
 
 
 class WideDeepArgParser(argparse.ArgumentParser):

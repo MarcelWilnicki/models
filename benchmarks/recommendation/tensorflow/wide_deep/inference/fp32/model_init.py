@@ -32,6 +32,10 @@ class ModelInitializer(BaseModelInitializer):
         super(ModelInitializer, self).__init__(args, custom_args, platform_util)
 
         set_env_var("OMP_NUM_THREADS", "1")
+        print("file: benchmarks/recommendation/tensorflow/wide_deep/inference/fp32/model_init.py")
+        print(os.getenv("OMP_NUM_THREADS"))
+        omp_num_threads = os.getenv("OMP_NUM_THREADS")
+        print(omp_num_threads)
 
         if args.batch_size == -1:
             args.batch_size = 1
@@ -55,10 +59,12 @@ class ModelInitializer(BaseModelInitializer):
                 " --model_dir=" + self.args.checkpoint + \
                 " --batch_size=" + str(self.args.batch_size)
         else:
-            command_prefix = " OMP_NUM_THREADS=1 "
+            #command_prefix = " OMP_NUM_THREADS=1 "
+            command_prefix = " OMP_NUM_THREADS=" + str(omp_num_threads) + " "
             num_numas = self.platform_util.num_numa_nodes
             if num_numas > 0:
-                command_prefix = command_prefix + "numactl --cpunodebind=0 --membind=0 "
+                #command_prefix = command_prefix + "numactl --cpunodebind=0 --membind=0 "
+                command_prefix = command_prefix + "numactl --physcpubind=0-32 "
             self.run_cmd = command_prefix + self.python_exe + " " + executable + \
                 " --data_dir=" + self.args.data_location + \
                 " --model_dir=" + self.args.checkpoint + \
@@ -73,5 +79,6 @@ class ModelInitializer(BaseModelInitializer):
             os.environ["PYTHONPATH"] = "{};{}".format(
                 os.path.join(self.args.model_source_dir),
                 os.environ["PYTHONPATH"])
+        print('self.run_cmd: ' + self.run_cmd)
         self.run_command(self.run_cmd)
         os.chdir(original_dir)
